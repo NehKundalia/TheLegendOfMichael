@@ -67,10 +67,16 @@ float ball_r, ball_g, ball_b;
 
 		//width, height, x , y, speed_x, speed_y, direction_x, direction_y
 Entity ball(0.05f, 0.05f, 0.0f, 0.0f, 1.5f, 1.5f, 3/2, 3/2);
-Entity leftPaddle(0.05f, 0.4f, -1.4f, 0.0f, 0.0f, 1.8f);
-Entity rightPaddle(0.05f, 0.4f, 1.4f, 0.0f, 0.0f, 1.8f);
+Entity leftPaddle(0.05f, 0.4f, -1.45f, 0.0f, 0.0f, 0.0f);
+Entity rightPaddle(0.05f, 0.4f, 1.45f, 0.0f, 0.0f, 0.0f);
 Entity lowerWall(3.8f, 0.01f, 0.0f, -1.0f);
 Entity upperWall(3.8f, 0.01f, 0.0f, 1.0f);
+
+bool detectCollision(Entity &first, Entity &second) {
+	float p1 = abs(first.x - second.x) - (first.width + second.width) / 2.0f;
+	float p2 = abs(first.y - second.y) - (first.height + second.height) / 2.0f;
+	return p1 < 0.0f && p2 < 0.0f;
+}
 
 void Setup() {
 
@@ -101,15 +107,51 @@ void Setup() {
 	ball_r = ball_g = ball_b = 1.0f;
 }
 
+void ProcessUpdate(float elapsed, bool &done, SDL_Event &event) {
+	while (SDL_PollEvent(&event)) {
+		if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
+			done = true;
+		}
+	}
+
+	const Uint8 *keys = SDL_GetKeyboardState(NULL);
+	if (keys[SDL_SCANCODE_UP]) {
+		if (!detectCollision(rightPaddle, upperWall)) {
+			rightPaddle.speed_y = 1.8f;
+		}
+	}
+
+	else if (keys[SDL_SCANCODE_DOWN]) {
+		if (!detectCollision(rightPaddle, lowerWall)) {
+			rightPaddle.speed_y = -1.8f;
+		}
+	}
+
+	if (keys[SDL_SCANCODE_W]) {
+		if (!detectCollision(leftPaddle, upperWall)) {
+			leftPaddle.speed_y = 1.8f;
+		}
+	}
+
+	else if (keys[SDL_SCANCODE_S]) {
+		if (!detectCollision(leftPaddle, lowerWall)) {
+			leftPaddle.speed_y = -1.8f;
+		}
+	}
+}
+
 void Update(float elapsed) {
 	ball.x += elapsed * ball.speed_x * ball.direction_x;
 	ball.y += elapsed * ball.speed_y * ball.direction_y;
 
-	if ((rightPaddle.x - (ball.x + elapsed * ball.speed_x * ball.direction_x) - (ball.width + rightPaddle.width) / 2) < 0 && (abs(rightPaddle.y - (ball.y + elapsed * ball.speed_x * ball.direction_y)) - (ball.height + rightPaddle.height) / 2) < 0) {
+	rightPaddle.y += elapsed * rightPaddle.speed_y;
+	leftPaddle.y += elapsed * leftPaddle.speed_y;
+	
+	if ((rightPaddle.x - (ball.x + elapsed * ball.speed_x * ball.direction_x) - (ball.width + rightPaddle.width) / 2) < 0 && (abs(rightPaddle.y - ball.y) - (ball.height + rightPaddle.height) / 2) < 0) {
 		ball.direction_x *= -1;
 	}
 
-	if ((ball.x + elapsed * ball.speed_x * ball.direction_x - leftPaddle.x - (ball.width + leftPaddle.width) / 2) < 0 && (abs(leftPaddle.y - ball.y + elapsed * ball.speed_y * ball.direction_y) - (ball.height + leftPaddle.height) / 2) < 0) {
+	if ((ball.x + elapsed * ball.speed_x * ball.direction_x - leftPaddle.x - (ball.width + leftPaddle.width) / 2) < 0 && (abs(leftPaddle.y-ball.y) - (ball.height + leftPaddle.height) / 2) < 0) {
 		ball.direction_x *= -1;
 	}
 
@@ -135,45 +177,8 @@ void Update(float elapsed) {
 		ball.x = 0.0f;
 		ball.y = 0.0f;
 	}
-}
-
-bool detectCollision(Entity &first, Entity &second) {
-	float p1 = abs(first.x - second.x) - (first.width + second.width) / 2.0f;
-	float p2 = abs(first.y - second.y) - (first.height + second.height) / 2.0f;
-	return p1 < 0.0f && p2 < 0.0f;
-}
-
-void ProcessUpdate(float elapsed, bool &done, SDL_Event &event) {
-	while (SDL_PollEvent(&event)) {
-		if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
-			done = true;
-		}
-	}
-
-	const Uint8 *keys = SDL_GetKeyboardState(NULL);
-	if (keys[SDL_SCANCODE_UP]) {
-		if (!detectCollision(rightPaddle, upperWall)) {
-			rightPaddle.y += elapsed * rightPaddle.speed_y;
-		}
-	}
-
-	else if (keys[SDL_SCANCODE_DOWN]) {
-		if (!detectCollision(rightPaddle, lowerWall)) {
-			rightPaddle.y += elapsed * -rightPaddle.speed_y;
-		}
-	}
-
-	if (keys[SDL_SCANCODE_W]) {
-		if (!detectCollision(leftPaddle, upperWall)) {
-			leftPaddle.y += elapsed * leftPaddle.speed_y;
-		}
-	}
-
-	else if (keys[SDL_SCANCODE_S]) {
-		if (!detectCollision(leftPaddle, lowerWall)) {
-			leftPaddle.y += elapsed * -leftPaddle.speed_y;
-		}
-	}
+	rightPaddle.speed_y = 0;
+	leftPaddle.speed_y = 0;
 }
 
 void Render() {
