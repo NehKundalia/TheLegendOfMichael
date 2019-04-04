@@ -23,38 +23,15 @@
 
 #define MAX_BULLETS 30
 #define NO_OF_ENEMIES 16
-int bulletIndex = 0;
 
 SDL_Window* displayWindow;
 
 ShaderProgram program1;
-ShaderProgram program2;
-
 glm::mat4 projectionMatrix = glm::mat4(1.0f);
 glm::mat4 viewMatrix = glm::mat4(1.0f);
+float time = 0.0f;
 
-enum GameMode { STATE_MAIN_MENU, STATE_GAME_LEVEL, STATE_GAME_OVER };
-GameMode mode;
-
-GLuint LoadTexture(const char *filePath) {
-	int w, h, comp;
-	unsigned char* image = stbi_load(filePath, &w, &h, &comp, STBI_rgb_alpha);
-
-	if (image == NULL) {
-		std::cout << "Unable to load image. Make sure the path is correct\n";
-		//assert(false);
-	}
-	GLuint textureID;
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_2D, textureID);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	stbi_image_free(image);
-	return textureID;
-}
+enum GameMode { STATE_MAIN_MENU, STATE_GAME_LEVEL, STATE_GAME_OVER } mode;
 
 class SheetSprite {
 public:
@@ -145,7 +122,28 @@ struct GameState {
 	Entity enemies[NO_OF_ENEMIES];
 	Entity bullets[MAX_BULLETS];
 	int enemiesAlive = 16;
+	int bulletIndex = 0;
 } gameState;
+
+GLuint LoadTexture(const char *filePath) {
+	int w, h, comp;
+	unsigned char* image = stbi_load(filePath, &w, &h, &comp, STBI_rgb_alpha);
+
+	if (image == NULL) {
+		std::cout << "Unable to load image. Make sure the path is correct\n";
+		//assert(false);
+	}
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	stbi_image_free(image);
+	return textureID;
+}
 
 void DrawText(ShaderProgram &program, int fontTexture, std::string text, float size, float spacing) {
 	float character_size = 1.0 / 16.0f;
@@ -192,11 +190,11 @@ void DrawText(ShaderProgram &program, int fontTexture, std::string text, float s
 }
 
 void shootBullet() {
-	gameState.bullets[bulletIndex].position.x = gameState.player.position.x;
-	gameState.bullets[bulletIndex].position.y = gameState.player.position.y + 0.3f;
-	bulletIndex++;
-	if (bulletIndex > MAX_BULLETS - 1) {
-		bulletIndex = 0;
+	gameState.bullets[gameState.bulletIndex].position.x = gameState.player.position.x;
+	gameState.bullets[gameState.bulletIndex].position.y = gameState.player.position.y + 0.3f;
+	gameState.bulletIndex++;
+	if (gameState.bulletIndex > MAX_BULLETS - 1) {
+		gameState.bulletIndex = 0;
 	}
 }
 
@@ -229,9 +227,8 @@ public:
 			}
 		}
 	}
-};
+} mainMenu;
 
-float time = 0.0f;
 class GameLevel {
 public:
 	void Render() {
@@ -307,10 +304,37 @@ public:
 		if (gameState.enemiesAlive == 0)
 			mode = STATE_GAME_OVER;
 	}
-};
+} gameLevel;
 
-MainMenu mainMenu;
-GameLevel gameLevel;
+class GameOver {
+public:
+	void Render() {
+		glm::mat4 modelMatrix = glm::mat4(1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		if (gameState.enemiesAlive == 0) {
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(-0.45f, 0.0f, 0.0f));
+			modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f, 0.5f, 0.0f));
+			program1.SetModelMatrix(modelMatrix);
+			DrawText(program1, 1, "YOU WON!", 0.5f, -0.25f);
+		}
+
+		else if (gameState.enemiesAlive != 0) {
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(-0.55f, 0.0f, 0.0f));
+			modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f, 0.5f, 0.0f));
+			program1.SetModelMatrix(modelMatrix);
+			DrawText(program1, 1, "GAME OVER!", 0.5f, -0.25f);
+		}
+	}
+
+	void ProcessUpdate(float elapsed, bool &done, SDL_Event &event) {
+		while (SDL_PollEvent(&event)) {
+			if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
+				done = true;
+			}
+		}
+	}
+} gameOver;
 
 void Setup() {
 	int resX = 1080;
@@ -327,8 +351,6 @@ void Setup() {
 	glViewport(0, 0, resX, resY);
 
 	program1.Load(RESOURCE_FOLDER"vertex_textured.glsl", RESOURCE_FOLDER"fragment_textured.glsl");
-
-	program2.Load(RESOURCE_FOLDER"vertex.glsl", RESOURCE_FOLDER"fragment.glsl");
 
 	float aspectRatio = (float)resX / (float)resY;
 	float projectionHeight = 1.0f;
@@ -367,7 +389,6 @@ void Setup() {
 	}
 
 	glUseProgram(program1.programID);
-	glUseProgram(program2.programID);
 
 	program1.SetProjectionMatrix(projectionMatrix);
 	program1.SetViewMatrix(viewMatrix);
@@ -375,38 +396,6 @@ void Setup() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
-
-class GameOver {
-public:
-	void Render() {
-		glm::mat4 modelMatrix = glm::mat4(1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		if (gameState.enemiesAlive == 0) {
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(-0.45f, 0.0f, 0.0f));
-			modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f, 0.5f, 0.0f));
-			program1.SetModelMatrix(modelMatrix);
-			DrawText(program1, 1, "YOU WON!", 0.5f, -0.25f);
-		}
-
-		else if (gameState.enemiesAlive != 0) {
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(-0.55f, 0.0f, 0.0f));
-			modelMatrix = glm::scale(modelMatrix, glm::vec3(0.5f, 0.5f, 0.0f));
-			program1.SetModelMatrix(modelMatrix);
-			DrawText(program1, 1, "GAME OVER!", 0.5f, -0.25f);
-		}
-	}
-
-	void ProcessUpdate(float elapsed, bool &done, SDL_Event &event) {
-		while (SDL_PollEvent(&event)) {
-			if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
-				done = true;
-			}
-		}
-	}
-};
-
-GameOver gameOver;
 
 void Render() {
 	switch (mode) {
