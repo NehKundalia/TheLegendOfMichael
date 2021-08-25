@@ -1,9 +1,0 @@
-﻿  main.cpp
-c:\users\nehku\documents\college stuff\intro to game programming\project2\nyucodebase\nyucodebase\flaremap.cpp(97): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\nehku\documents\college stuff\intro to game programming\project2\nyucodebase\nyucodebase\flaremap.cpp(98): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\nehku\documents\college stuff\intro to game programming\project2\nyucodebase\nyucodebase\main.cpp(76): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-c:\users\nehku\documents\college stuff\intro to game programming\project2\nyucodebase\nyucodebase\main.cpp(211): warning C4018: '<': signed/unsigned mismatch
-c:\users\nehku\documents\college stuff\intro to game programming\project2\nyucodebase\nyucodebase\main.cpp(308): warning C4305: 'argument': truncation from 'double' to 'float'
-c:\users\nehku\documents\college stuff\intro to game programming\project2\nyucodebase\nyucodebase\main.cpp(336): warning C4305: 'argument': truncation from 'double' to 'float'
-c:\users\nehku\documents\college stuff\intro to game programming\project2\nyucodebase\nyucodebase\main.cpp(1533): warning C4305: 'argument': truncation from 'double' to 'float'
-  NYUCodebase.vcxproj -> C:\Users\nehku\Documents\College Stuff\Intro to Game Programming\project2\NYUCodebase\Debug\NYUCodebase.exe
